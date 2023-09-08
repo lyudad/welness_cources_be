@@ -47,3 +47,7 @@ yarn start:dev
 ```
 
 The project will be accessible at `http://localhost:PORT`, where `PORT` is the port specified in your `.env` file.
+
+## Docs & API routes 
+- Docs - http://{DOMAIN}:PORT/docs
+- API - http://{DOMAIN}:PORT/api
