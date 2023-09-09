@@ -1,20 +1,19 @@
 import {
   Entity,
-  Column,
-  PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
   BaseEntity,
+  PrimaryColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Role } from './roles.entity';
 
 @Entity('users_roles')
 export class UserRoles extends BaseEntity {
-  @PrimaryGeneratedColumn({ type: 'int', name: 'role_id' })
+  @PrimaryColumn({ type: 'int', name: 'role_id' })
   roleId: number;
 
-  @Column({ type: 'int', name: 'user_id', nullable: false })
+  @PrimaryColumn({ type: 'int', name: 'user_id' })
   userId: number;
 
   @ManyToOne(() => User, (user) => user.roles, {

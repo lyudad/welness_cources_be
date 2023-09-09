@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   ManyToMany,
   BaseEntity,
+  JoinTable,
 } from 'typeorm';
 import { IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -30,6 +31,17 @@ export class Role extends BaseEntity {
   @ManyToMany(() => User, (user) => user.roles, {
     onDelete: 'CASCADE',
     onUpdate: 'NO ACTION',
+  })
+  @JoinTable({
+    name: 'users_roles',
+    joinColumn: {
+      name: 'role_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
   })
   users?: User[];
 }

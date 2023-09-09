@@ -24,15 +24,18 @@ export class RolesService {
   }
 
   async getAllRoles(): Promise<Role[]> {
-    return await this.rolesRepository.find();
+    return await this.rolesRepository.query('SELECT * FROM role');
   }
 
-  async getRoleByValue(value: string): Promise<Role> {
-    return await this.rolesRepository.findOneBy({ value });
+  async getRoleByValue(value: string): Promise<Role[]> {
+    return await this.rolesRepository.query(
+      'SELECT * FROM role WHERE value = $1',
+      [value],
+    );
   }
 
   async updateRole(value: string, dto: UpdateRoleDto): Promise<Role> {
-    const role = await this.getRoleByValue(value);
+    const [role] = await this.getRoleByValue(value);
 
     if (!role) {
       throw new NotFoundException('Role not found');
@@ -49,7 +52,7 @@ export class RolesService {
   }
 
   async removeRoleByValue(value: string): Promise<boolean> {
-    const roleToDelete = await this.rolesRepository.findOneBy({ value });
+    const roleToDelete = await this.getRoleByValue(value);
 
     if (!roleToDelete) {
       throw new NotFoundException('Role not found');
@@ -64,7 +67,9 @@ export class RolesService {
   }
 
   async checkExistingRoleByValue(value: string): Promise<void> {
-    if (await this.getRoleByValue(value)) {
+    const [existingRole] = await this.getRoleByValue(value);
+
+    if (existingRole) {
       throw new BadRequestException('This role already exists');
     }
   }

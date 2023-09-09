@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AuthService } from './auth.service';
@@ -24,15 +24,12 @@ export class AuthController {
       maxAge: 10800,
     });
 
-    return res.status(200).json(user);
+    return res.status(HttpStatus.OK).json(user);
   }
 
   @ApiResponse({ status: 200, type: User })
   @Post('/sign-up')
-  async registration(
-    @Body() userDto: CreateUserDto,
-    @Res() res: Response,
-  ): Promise<Response<User>> {
+  async registration(@Body() userDto: CreateUserDto, @Res() res: Response) {
     const { user, token } = await this.authService.registration(userDto);
 
     res.cookie('accessToken', token, {
@@ -41,6 +38,6 @@ export class AuthController {
       maxAge: 10800,
     });
 
-    return res.status(200).json(user);
+    return res.status(HttpStatus.OK).json(user);
   }
 }

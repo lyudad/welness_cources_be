@@ -60,7 +60,7 @@ export class RolesController {
   @UseGuards(RolesGuard)
   @Get('/:value')
   async getByValue(@Param('value') value: string): Promise<Role> {
-    const roles = await this.rolesService.getRoleByValue(value);
+    const [roles] = await this.rolesService.getRoleByValue(value);
 
     if (!roles) throw new NotFoundException();
 

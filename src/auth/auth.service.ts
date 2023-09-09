@@ -25,16 +25,13 @@ export class AuthService {
 
     const { token } = await this.generateToken(user);
 
-    return {
-      user,
-      token,
-    };
+    return { user, token };
   }
 
   async registration(
     userDto: CreateUserDto,
   ): Promise<{ user: User; token: string }> {
-    const existingUser = await this.userService.findByEmail(userDto.email);
+    const [existingUser] = await this.userService.findByEmail(userDto.email);
 
     if (existingUser) {
       throw new HttpException(
@@ -63,7 +60,7 @@ export class AuthService {
   }
 
   private async validateUser(userDto: CreateUserDto): Promise<User> {
-    const user = await this.userService.findByEmail(userDto.email);
+    const [user] = await this.userService.findByEmail(userDto.email);
 
     const passwordEquals = await bcrypt.compare(
       userDto.password,
