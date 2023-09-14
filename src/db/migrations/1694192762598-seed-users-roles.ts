@@ -12,6 +12,13 @@ export class UsersRoles1694192762598 implements MigrationInterface {
     await queryRunner.query(`
       INSERT INTO users_roles (user_id, role_id)
         VALUES (
+        (SELECT id FROM "users" WHERE email = 'mockRegularUser@example.com'),
+        (SELECT id FROM "role" WHERE value = 'TRAINER')
+      );`);
+
+    await queryRunner.query(`
+      INSERT INTO users_roles (user_id, role_id)
+        VALUES (
         (SELECT id FROM "users" WHERE email = 'mockAdmin@example.com'),
         (SELECT id FROM "role" WHERE value = 'ADMIN')
       );`);
