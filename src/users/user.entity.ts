@@ -33,6 +33,13 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', name: 'email', unique: true })
   email: string;
 
+  @ApiProperty({
+    example: 'http://domain/path-to-avatar',
+    description: 'Url to user avatar',
+  })
+  @Column({ type: 'text', name: 'avatar', nullable: true })
+  avatar: string;
+
   @Column({ type: 'varchar', name: 'password' })
   password: string;
 

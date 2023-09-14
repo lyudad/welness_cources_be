@@ -124,7 +124,7 @@ export class GroupsService {
     const query = `
       SELECT groups.id, groups.name, groups.trainer_id AS "trainerId", groups.created_at AS "createdAt", groups.updated_at AS "updatedAt",
         CASE
-          WHEN COUNT(users.id) > 0 THEN json_agg(json_build_object('id', users.id, 'firstName', users.first_name, 'lastName', users.last_name, 'email', users.email))
+          WHEN COUNT(users.id) > 0 THEN json_agg(json_build_object('id', users.id, 'firstName', users.first_name, 'lastName', users.last_name, 'email', users.email, 'avatar', users.avatar))
           ELSE NULL
         END AS users
       FROM groups
@@ -149,7 +149,7 @@ export class GroupsService {
     const query = `
       SELECT groups.id, groups.name, groups.trainer_id AS "trainerId", groups.created_at AS "createdAt", groups.updated_at AS "updatedAt",
         CASE
-          WHEN COUNT(users.id) > 0 THEN json_agg(json_build_object('id', users.id, 'firstName', users.first_name, 'lastName', users.last_name, 'email', users.email))
+          WHEN COUNT(users.id) > 0 THEN json_agg(json_build_object('id', users.id, 'firstName', users.first_name, 'lastName', users.last_name, 'email', users.email, 'avatar', users.avatar))
           ELSE NULL
         END AS users
       FROM groups

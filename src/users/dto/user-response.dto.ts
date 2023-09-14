@@ -17,6 +17,9 @@ export class UserResponseDto {
   email: string;
 
   @ApiProperty()
+  avatar: string;
+
+  @ApiProperty()
   roles: Role[];
 
   @ApiProperty()
@@ -27,6 +30,7 @@ export class UserResponseDto {
     this.firstName = user.firstName || null;
     this.lastName = user.lastName || null;
     this.email = user.email;
+    this.avatar = user.avatar || null;
     this.roles = user.roles;
     this.group = user.group;
   }

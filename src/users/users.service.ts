@@ -10,6 +10,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { RolesService } from '../roles/roles.service';
 import { AddRoleDto } from './dto/add-role.dto';
 import { RemoveRoleDto } from './dto/remove-role.dto';
+import * as fs from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class UsersService {
@@ -116,6 +118,75 @@ export class UsersService {
     return exitingUser;
   }
 
+  async updateUserAvatar(userId: number, avatarUrl: string) {
+    const existingUser = await this.checkExitingUserById(userId);
+
+    if (existingUser.avatar) {
+      const fileName = new URL(existingUser.avatar).pathname.replace('/', '');
+      const filePath = join(__dirname, '..', '..', 'client', fileName);
+
+      this.removeAvatarFromFS(filePath);
+    }
+
+    try {
+      await this.addAvatarUrl(userId, avatarUrl);
+    } catch (e) {
+      throw new BadRequestException('Something went wrong');
+    }
+  }
+
+  async deleteUserAvatar(userId: number) {
+    const existingUser = await this.checkExitingUserById(userId);
+
+    if (!existingUser.avatar) {
+      throw new BadRequestException("User don't have avatar");
+    }
+
+    const fileName = new URL(existingUser.avatar).pathname.replace('/', '');
+    const filePath = join(__dirname, '..', '..', 'client', fileName);
+
+    await this.removeAvatar(userId);
+
+    this.removeAvatarFromFS(filePath);
+  }
+
+  removeAvatarFromFS(filePath: string) {
+    try {
+      fs.access(filePath, (err) => {
+        if (err) {
+          console.error(
+            `[ERROR] deleteUserAvatar -> fs.access: [${err.message}]`,
+          );
+        }
+      });
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(
+            `[ERROR] deleteUserAvatar -> fs.unlink: [${err.message}]`,
+          );
+        }
+      });
+    } catch (e) {
+      throw new BadRequestException('Something went wrong');
+    }
+  }
+
+  async addAvatarUrl(userId: number, avatarUrl: string): Promise<User> {
+    const query = `
+      UPDATE users SET avatar = $1 WHERE id = $2;
+    `;
+
+    return await this.usersRepository.query(query, [avatarUrl, userId]);
+  }
+
+  async removeAvatar(userId: number): Promise<User> {
+    const query = `
+      UPDATE users SET avatar = NULL WHERE id = $1;
+    `;
+
+    return await this.usersRepository.query(query, [userId]);
+  }
+
   async addGroup(groupId: number, userId: number): Promise<User> {
     const query = `
       UPDATE users SET group_id = $1 WHERE id = $2;
@@ -142,7 +213,7 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User[]> {
     const query = `
-      SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email, users.group_id AS "group",
+      SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email, users.avatar, users.group_id AS "group",
         json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)) AS roles,
         CASE
           WHEN COUNT(groups.id) > 0 THEN json_build_object('id', groups.id, 'groupName', groups.name)
@@ -166,6 +237,7 @@ export class UsersService {
         users.first_name AS "firstName",
         users.last_name AS "lastName",
         users.email,
+        users.avatar,
         users.password,
         users.group_id AS "group",
         COALESCE(json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)), '[]') AS roles,
@@ -188,7 +260,7 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     const query = `
-      SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email,
+      SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email, users.avatar,
          json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)) AS roles,
         CASE
           WHEN COUNT(groups.id) > 0 THEN json_build_object('id', groups.id, 'groupName', groups.name)
@@ -206,7 +278,7 @@ export class UsersService {
 
   async findById(userId: number): Promise<User> {
     const query = `
-      SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email, users.group_id AS "group",
+      SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email, users.avatar, users.group_id AS "group",
          json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)) AS roles
       FROM users
       LEFT JOIN users_roles ON users.id = users_roles.user_id
