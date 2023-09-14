@@ -10,6 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import typeorm from './config/typeorm';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 import { APP_FILTER } from '@nestjs/core';
+import { GroupsModule } from './groups/groups.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { APP_FILTER } from '@nestjs/core';
     UsersModule,
     RolesModule,
     AuthModule,
+    GroupsModule,
   ],
   controllers: [RolesController],
   providers: [

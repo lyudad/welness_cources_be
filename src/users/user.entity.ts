@@ -7,9 +7,13 @@ import {
   BaseEntity,
   UpdateDateColumn,
   CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Role } from '../roles/roles.entity';
+import { Group } from '../groups/groups.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -29,9 +33,15 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', name: 'email', unique: true })
   email: string;
 
-  @ApiProperty({ example: 'MyStr0ngP@ssword!', description: 'Strong password' })
   @Column({ type: 'varchar', name: 'password' })
   password: string;
+
+  @ManyToOne(() => Group, (group) => group.users)
+  @JoinColumn({ name: 'group_id' })
+  group: Group;
+
+  @OneToMany(() => Group, (group) => group.trainer)
+  groups: Group[];
 
   @ApiProperty({ example: '2023-09-07 12:21:17.451435 +00:00' })
   @CreateDateColumn({

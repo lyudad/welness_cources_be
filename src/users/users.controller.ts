@@ -51,6 +51,19 @@ export class UsersController {
     return allUsers;
   }
 
+  @ApiOperation({ summary: 'Get user by id' })
+  @ApiResponse({ status: 200, type: User })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('/:userId')
+  async getById(@Param('userId') userId: number): Promise<User> {
+    const user = await this.userService.findById(userId);
+
+    if (!user) throw new NotFoundException('User with such id not found');
+
+    return user;
+  }
+
   @ApiOperation({ summary: 'Remove user' })
   @ApiResponse({ status: 200 })
   @ApiBearerAuth()
@@ -80,6 +93,10 @@ export class UsersController {
     @Param('userId') userId: number,
     @Body() removeRoleDto: RemoveRoleDto,
   ): Promise<boolean> {
-    return await this.userService.removeRole(userId, removeRoleDto);
+    const group = await this.userService.removeRole(userId, removeRoleDto);
+
+    if (!group) throw new NotFoundException('Group with provided id not found');
+
+    return group;
   }
 }

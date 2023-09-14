@@ -1,43 +1,36 @@
-import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AuthService } from './auth.service';
-import { User } from '../users/user.entity';
-import { Response } from 'express';
+import { AuthResponseDto } from '../users/dto/auth-response.dto';
+import { UserResponseDto } from '../users/dto/user-response.dto';
 
 @ApiTags('Authorization')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @ApiResponse({ status: 200, type: User })
+  @ApiResponse({ status: 200, type: AuthResponseDto })
+  @HttpCode(200)
   @Post('/login')
-  async login(
-    @Body() userDto: CreateUserDto,
-    @Res() res: Response,
-  ): Promise<Response<User>> {
+  async login(@Body() userDto: CreateUserDto): Promise<AuthResponseDto> {
     const { user, token } = await this.authService.login(userDto);
 
-    res.cookie('accessToken', token, {
-      httpOnly: true,
-      secure: true,
-      maxAge: 10800,
-    });
-
-    return res.status(HttpStatus.OK).json(user);
+    return {
+      token,
+      user: new UserResponseDto(user),
+    };
   }
 
-  @ApiResponse({ status: 200, type: User })
+  @ApiResponse({ status: 200, type: AuthResponseDto })
+  @HttpCode(200)
   @Post('/sign-up')
-  async registration(@Body() userDto: CreateUserDto, @Res() res: Response) {
+  async registration(@Body() userDto: CreateUserDto): Promise<AuthResponseDto> {
     const { user, token } = await this.authService.registration(userDto);
 
-    res.cookie('accessToken', token, {
-      httpOnly: true,
-      secure: true,
-      maxAge: 10800,
-    });
-
-    return res.status(HttpStatus.OK).json(user);
+    return {
+      token,
+      user: new UserResponseDto(user),
+    };
   }
 }
