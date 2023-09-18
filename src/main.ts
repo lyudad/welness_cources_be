@@ -17,6 +17,7 @@ async function bootstrap() {
     }),
   );
   app.enableCors();
+  app.setGlobalPrefix('api');
 
   const config = new DocumentBuilder()
     .setTitle('BE part for welness_cources')
