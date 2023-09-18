@@ -1,7 +1,5 @@
 import {
   BadRequestException,
-  HttpException,
-  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -21,15 +19,6 @@ export class UsersService {
   ) {}
 
   async createUser(dto: CreateUserDto): Promise<User> {
-    const [existingUser] = await this.findByEmail(dto.email);
-
-    if (existingUser) {
-      throw new HttpException(
-        'User with this email already exists',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     const user = this.usersRepository.create(dto);
 
     const [role] = await this.roleService.getRoleByValue('USER');
@@ -59,12 +48,12 @@ export class UsersService {
   }
 
   async addRole(addRoleDto: AddRoleDto): Promise<boolean> {
-    const [user] = await this.findById(addRoleDto.userId);
+    const user = await this.findById(addRoleDto.userId);
 
     const [role] = await this.roleService.getRoleByValue(addRoleDto.value);
 
     if (!user || !role) {
-      throw new HttpException('User or role not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException('User or role not found');
     }
 
     if (user.roles) {
@@ -73,10 +62,7 @@ export class UsersService {
       );
 
       if (existingRole) {
-        throw new HttpException(
-          'User already has this role',
-          HttpStatus.BAD_REQUEST,
-        );
+        throw new BadRequestException('User already has this role');
       }
 
       user.roles = [...user.roles, role];
@@ -86,6 +72,7 @@ export class UsersService {
 
     try {
       await this.usersRepository.save(user);
+
       return true;
     } catch (e) {
       throw new BadRequestException(e.message);
@@ -96,54 +83,130 @@ export class UsersService {
     userId: number,
     removeRoleDto: RemoveRoleDto,
   ): Promise<boolean> {
-    const [user] = await this.findById(userId);
+    const user = await this.findById(userId);
 
     const [role] = await this.roleService.getRoleByValue(removeRoleDto.value);
 
     if (!user || !role || !user.roles) {
-      throw new HttpException('User or role not found', HttpStatus.NOT_FOUND);
+      throw new NotFoundException('User or role not found');
     }
 
-    user.roles = [...user.roles.filter((userRole) => userRole.id === role.id)];
+    if (role.value === 'USER') {
+      throw new BadRequestException("Can't remove default role");
+    }
+
+    user.roles = [...user.roles.filter((userRole) => userRole.id !== role.id)];
 
     try {
       await this.usersRepository.save(user);
+
       return true;
     } catch (e) {
       throw new BadRequestException(e.message);
     }
   }
 
+  async checkExitingUserById(userId: number): Promise<User> {
+    const exitingUser = await this.findById(userId);
+
+    if (!exitingUser) {
+      throw new NotFoundException('Group with provided id not found');
+    }
+
+    return exitingUser;
+  }
+
+  async addGroup(groupId: number, userId: number): Promise<User> {
+    const query = `
+      UPDATE users SET group_id = $1 WHERE id = $2;
+    `;
+
+    return await this.usersRepository.query(query, [groupId, userId]);
+  }
+
+  async removeGroup(userId: number): Promise<User> {
+    const query = `
+      UPDATE users SET group_id = NULL WHERE id = $1;
+    `;
+
+    return await this.usersRepository.query(query, [userId]);
+  }
+
+  async clearGroups(groupId: number): Promise<User> {
+    const query = `
+      UPDATE users SET group_id = NULL WHERE group_id = $1;
+    `;
+
+    return await this.usersRepository.query(query, [groupId]);
+  }
+
   async findByEmail(email: string): Promise<User[]> {
     const query = `
-      SELECT users.id, users.first_name, users.last_name, users.email, users.password,
-         json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)) AS roles
+      SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email, users.group_id AS "group",
+        json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)) AS roles,
+        CASE
+          WHEN COUNT(groups.id) > 0 THEN json_build_object('id', groups.id, 'groupName', groups.name)
+          ELSE NULL
+        END AS group
       FROM users
       LEFT JOIN users_roles ON users.id = users_roles.user_id
       LEFT JOIN role ON users_roles.role_id = role.id
+      LEFT JOIN groups ON users.group_id = groups.id
       WHERE users.email = $1
-      GROUP BY users.id
+      GROUP BY users.id, groups.id;
     `;
 
     return await this.usersRepository.query(query, [email]);
   }
 
-  async findAll(): Promise<User[]> {
+  async findByEmailWithPassword(email: string): Promise<User> {
     const query = `
-      SELECT users.id, users.first_name, users.last_name, users.email,
-         json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)) AS roles
+      SELECT
+        users.id,
+        users.first_name AS "firstName",
+        users.last_name AS "lastName",
+        users.email,
+        users.password,
+        users.group_id AS "group",
+        COALESCE(json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)), '[]') AS roles,
+        CASE
+          WHEN COUNT(groups.id) > 0 THEN json_build_object('id', groups.id, 'groupName', groups.name)
+          ELSE NULL
+        END AS group
       FROM users
       LEFT JOIN users_roles ON users.id = users_roles.user_id
       LEFT JOIN role ON users_roles.role_id = role.id
-      GROUP BY users.id
+      LEFT JOIN groups ON users.group_id = groups.id
+      WHERE users.email = $1
+      GROUP BY users.id, groups.id;
+    `;
+
+    const [user] = await this.usersRepository.query(query, [email]);
+
+    return user;
+  }
+
+  async findAll(): Promise<User[]> {
+    const query = `
+      SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email,
+         json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)) AS roles,
+        CASE
+          WHEN COUNT(groups.id) > 0 THEN json_build_object('id', groups.id, 'groupName', groups.name)
+          ELSE NULL
+        END AS group
+      FROM users
+      LEFT JOIN users_roles ON users.id = users_roles.user_id
+      LEFT JOIN role ON users_roles.role_id = role.id
+      LEFT JOIN groups ON users.group_id = groups.id
+      GROUP BY users.id, groups.id;
     `;
 
     return await this.usersRepository.query(query);
   }
 
-  async findById(userId: number): Promise<User[]> {
+  async findById(userId: number): Promise<User> {
     const query = `
-      SELECT users.id, users.first_name, users.last_name, users.email,
+      SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email, users.group_id AS "group",
          json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)) AS roles
       FROM users
       LEFT JOIN users_roles ON users.id = users_roles.user_id
@@ -152,6 +215,8 @@ export class UsersService {
       GROUP BY users.id
     `;
 
-    return await this.usersRepository.query(query, [userId]);
+    const [user] = await this.usersRepository.query(query, [userId]);
+
+    return user;
   }
 }

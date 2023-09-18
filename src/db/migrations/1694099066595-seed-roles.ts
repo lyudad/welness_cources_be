@@ -6,7 +6,8 @@ export class Roles1694099066595 implements MigrationInterface {
       INSERT INTO "role" ("value", "description")
       VALUES
         ('ADMIN', 'Administrator'),
-        ('USER', 'Regular user');
+        ('USER', 'Regular user'),
+        ('TRAINER', 'Trainer');
     `);
   }
 

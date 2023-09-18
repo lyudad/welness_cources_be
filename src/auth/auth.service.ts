@@ -1,6 +1,5 @@
 import {
-  HttpException,
-  HttpStatus,
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -34,10 +33,7 @@ export class AuthService {
     const [existingUser] = await this.userService.findByEmail(userDto.email);
 
     if (existingUser) {
-      throw new HttpException(
-        'User with this email already exists',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException('User with this email already exists');
     }
 
     const hashedPassword = await bcrypt.hash(userDto.password, 6);
@@ -60,15 +56,19 @@ export class AuthService {
   }
 
   private async validateUser(userDto: CreateUserDto): Promise<User> {
-    const [user] = await this.userService.findByEmail(userDto.email);
+    const user = await this.userService.findByEmailWithPassword(userDto.email);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     const passwordEquals = await bcrypt.compare(
       userDto.password,
       user.password,
     );
 
-    if (!user || !passwordEquals) {
-      throw new UnauthorizedException('Invalid email or password');
+    if (!passwordEquals) {
+      throw new UnauthorizedException('Invalid password');
     }
 
     return user;
