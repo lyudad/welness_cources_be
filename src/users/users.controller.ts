@@ -13,6 +13,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Patch,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
@@ -35,11 +36,18 @@ import { UploadAvatarResponseDto } from './dto/upload-avatar-response.dto';
 import { diskStorage } from 'multer';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 import { extname } from 'path';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { Role } from '../roles/roles.entity';
+import { BecomeTrainerResponseDto } from './dto/become-trainer-response.dto';
+import { AuthService } from '../auth/auth.service';
 
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
-  constructor(private userService: UsersService) {}
+  constructor(
+    private userService: UsersService,
+    private authService: AuthService,
+  ) {}
 
   @ApiOperation({ summary: 'Create one user' })
   @ApiResponse({ status: 200, type: User })
@@ -49,6 +57,36 @@ export class UsersController {
   @Post()
   create(@Body() userDto: CreateUserDto) {
     return this.userService.createUser(userDto);
+  }
+
+  @ApiOperation({ summary: 'Update one user' })
+  @ApiResponse({ status: 200, type: UpdateUserDto })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch('update')
+  update(
+    @Body() userDto: UpdateUserDto,
+    @Request() req,
+  ): Promise<UpdateUserDto> {
+    return this.userService.updateUser(userDto, req.user.id);
+  }
+
+  @ApiOperation({ summary: 'Add TRAINER role' })
+  @ApiResponse({ status: 201, type: BecomeTrainerResponseDto })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('/become-trainer')
+  async becomeTrainer(@Request() req): Promise<BecomeTrainerResponseDto> {
+    const newRole = await this.userService.addRole({
+      value: 'TRAINER',
+      userId: req.user.id,
+    });
+
+    const user = await this.userService.findById(req.user.id);
+
+    const { token } = await this.authService.generateToken(user);
+
+    return { newRole, token };
   }
 
   @ApiOperation({ summary: 'Get all users' })
@@ -107,6 +145,7 @@ export class UsersController {
           cb(null, `${randomName}${extname(file.originalname)}`);
         },
       }),
+      limits: { fileSize: 1000000 },
     }),
   )
   async uploadAvatar(
@@ -152,12 +191,12 @@ export class UsersController {
   }
 
   @ApiOperation({ summary: 'Add role specific user' })
-  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 200, type: Role })
   @ApiBearerAuth()
   @Roles('ADMIN')
   @UseGuards(RolesGuard)
   @Post('/role')
-  async addRole(@Body() addRoleDto: AddRoleDto): Promise<boolean> {
+  async addRole(@Body() addRoleDto: AddRoleDto): Promise<Role> {
     return await this.userService.addRole(addRoleDto);
   }
 

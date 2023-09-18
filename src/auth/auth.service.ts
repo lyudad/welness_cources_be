@@ -9,6 +9,7 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { User } from '../users/user.entity';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -72,5 +73,45 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async changePassword(
+    dto: ChangePasswordDto,
+    userId: number,
+  ): Promise<boolean> {
+    const existingUser =
+      await this.userService.findByUserIdWithPassword(userId);
+
+    if (!existingUser) {
+      throw new NotFoundException('User with such id not found');
+    }
+
+    if (dto.newPassword !== dto.confirmPassword) {
+      throw new BadRequestException(
+        "Confirm password doesn't equal new password",
+      );
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(
+        'New password must be different from the old one',
+      );
+    }
+
+    const passwordEquals = await bcrypt.compare(
+      dto.currentPassword,
+      existingUser.password,
+    );
+
+    if (!passwordEquals) {
+      throw new UnauthorizedException('Invalid password');
+    }
+
+    const newHashedPassword = await bcrypt.hash(dto.newPassword, 6);
+
+    return await this.userService.updatePassword(
+      newHashedPassword,
+      existingUser.id,
+    );
   }
 }

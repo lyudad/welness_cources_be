@@ -12,6 +12,8 @@ import { AddRoleDto } from './dto/add-role.dto';
 import { RemoveRoleDto } from './dto/remove-role.dto';
 import * as fs from 'fs';
 import { join } from 'path';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { Role } from '../roles/roles.entity';
 
 @Injectable()
 export class UsersService {
@@ -34,6 +36,12 @@ export class UsersService {
     return await this.usersRepository.save(user);
   }
 
+  async updateUser(dto: UpdateUserDto, userId: number): Promise<UpdateUserDto> {
+    await this.checkExitingUserById(userId);
+
+    return await this.updateUserQuery(dto, userId);
+  }
+
   async removeById(userId: number): Promise<boolean> {
     const user = await this.findById(userId);
 
@@ -49,7 +57,7 @@ export class UsersService {
     }
   }
 
-  async addRole(addRoleDto: AddRoleDto): Promise<boolean> {
+  async addRole(addRoleDto: AddRoleDto): Promise<Role> {
     const user = await this.findById(addRoleDto.userId);
 
     const [role] = await this.roleService.getRoleByValue(addRoleDto.value);
@@ -75,7 +83,7 @@ export class UsersService {
     try {
       await this.usersRepository.save(user);
 
-      return true;
+      return role;
     } catch (e) {
       throw new BadRequestException(e.message);
     }
@@ -112,7 +120,7 @@ export class UsersService {
     const exitingUser = await this.findById(userId);
 
     if (!exitingUser) {
-      throw new NotFoundException('Group with provided id not found');
+      throw new NotFoundException('User with provided id not found');
     }
 
     return exitingUser;
@@ -148,6 +156,30 @@ export class UsersService {
     await this.removeAvatar(userId);
 
     this.removeAvatarFromFS(filePath);
+  }
+
+  async updateUserQuery(
+    dto: UpdateUserDto,
+    userId: number,
+  ): Promise<UpdateUserDto> {
+    try {
+      const queryResponse = await this.usersRepository
+        .createQueryBuilder()
+        .update(User)
+        .set({ firstName: dto.firstName, lastName: dto.lastName })
+        .where('users.id = :userId', { userId })
+        .returning(['firstName', 'lastName'])
+        .execute();
+
+      const returnedRow = queryResponse.raw[0];
+
+      return {
+        firstName: returnedRow.first_name,
+        lastName: returnedRow.last_name,
+      };
+    } catch (e) {
+      throw new BadRequestException('Something went wrong');
+    }
   }
 
   removeAvatarFromFS(filePath: string) {
@@ -258,6 +290,34 @@ export class UsersService {
     return user;
   }
 
+  async findByUserIdWithPassword(userId: number): Promise<User> {
+    const query = `
+      SELECT
+        users.id,
+        users.first_name AS "firstName",
+        users.last_name AS "lastName",
+        users.email,
+        users.avatar,
+        users.password,
+        users.group_id AS "group",
+        COALESCE(json_agg(json_build_object('id', role.id, 'value', role.value, 'description', role.description)), '[]') AS roles,
+        CASE
+          WHEN COUNT(groups.id) > 0 THEN json_build_object('id', groups.id, 'groupName', groups.name)
+          ELSE NULL
+        END AS group
+      FROM users
+      LEFT JOIN users_roles ON users.id = users_roles.user_id
+      LEFT JOIN role ON users_roles.role_id = role.id
+      LEFT JOIN groups ON users.group_id = groups.id
+      WHERE users.id = $1
+      GROUP BY users.id, groups.id;
+    `;
+
+    const [user] = await this.usersRepository.query(query, [userId]);
+
+    return user;
+  }
+
   async findAll(): Promise<User[]> {
     const query = `
       SELECT users.id, users.first_name AS "firstName", users.last_name AS "lastName", users.email, users.avatar,
@@ -290,5 +350,20 @@ export class UsersService {
     const [user] = await this.usersRepository.query(query, [userId]);
 
     return user;
+  }
+
+  async updatePassword(newPassword: string, userId: number) {
+    try {
+      await this.usersRepository
+        .createQueryBuilder()
+        .update(User)
+        .set({ password: newPassword })
+        .where('users.id = :userId', { userId })
+        .execute();
+
+      return true;
+    } catch (e) {
+      throw new BadRequestException('Something went wrong');
+    }
   }
 }
