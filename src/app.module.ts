@@ -13,6 +13,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { GroupsModule } from './groups/groups.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { PostsModule } from './posts/posts.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { join } from 'path';
     RolesModule,
     AuthModule,
     GroupsModule,
+    PostsModule,
   ],
   controllers: [RolesController],
   providers: [

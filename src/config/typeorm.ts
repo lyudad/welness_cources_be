@@ -5,6 +5,7 @@ import { UserRoles } from '../roles/user-roles.entity';
 import { Role } from '../roles/roles.entity';
 import { User } from '../users/user.entity';
 import { Group } from '../groups/groups.entity';
+import { Posts } from '../posts/posts.entity';
 
 dotenvConfig({ path: '.env' });
 
@@ -15,7 +16,7 @@ const config = {
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   database: process.env.POSTGRES_DB,
-  entities: [User, Role, UserRoles, Group],
+  entities: [User, Role, UserRoles, Group, Posts],
   synchronize: true,
   autoLoadEntities: true,
   migrations: ['dist/db/migrations/*.js'],

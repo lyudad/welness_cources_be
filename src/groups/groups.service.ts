@@ -122,7 +122,7 @@ export class GroupsService {
 
   async findAllByTrainerId(userId: number): Promise<Group[]> {
     const query = `
-      SELECT groups.id, groups.name, groups.trainer_id AS "trainerId", groups.created_at AS "createdAt", groups.updated_at AS "updatedAt",
+      SELECT groups.id, groups.name, groups.description, groups.trainer_id AS "trainerId", groups.created_at AS "createdAt", groups.updated_at AS "updatedAt",
         CASE
           WHEN COUNT(users.id) > 0 THEN json_agg(json_build_object('id', users.id, 'firstName', users.first_name, 'lastName', users.last_name, 'email', users.email, 'avatar', users.avatar))
           ELSE NULL
@@ -147,7 +147,7 @@ export class GroupsService {
 
   async findByIdWithUsers(groupId: number): Promise<Group> {
     const query = `
-      SELECT groups.id, groups.name, groups.trainer_id AS "trainerId", groups.created_at AS "createdAt", groups.updated_at AS "updatedAt",
+      SELECT groups.id, groups.name, groups.description, groups.trainer_id AS "trainerId", groups.created_at AS "createdAt", groups.updated_at AS "updatedAt",
         CASE
           WHEN COUNT(users.id) > 0 THEN json_agg(json_build_object('id', users.id, 'firstName', users.first_name, 'lastName', users.last_name, 'email', users.email, 'avatar', users.avatar))
           ELSE NULL
