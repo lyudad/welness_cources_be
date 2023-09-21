@@ -2,6 +2,14 @@
 
 A brief description of the project and its objectives.
 
+## Roadmap
+- ~~auth flow~~
+- ~~users with routes, user avatars~~
+- ~~groups with routes~~
+- ~~posts in groups with routes, videos in posts~~
+- notifications / reminders with cron jobs
+- comments in posts
+
 ## Getting Started
 
 ### Prerequisites
