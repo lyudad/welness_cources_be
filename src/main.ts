@@ -14,6 +14,7 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'same-site' },
     }),
   );
   app.enableCors();

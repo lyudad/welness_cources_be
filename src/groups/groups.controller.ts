@@ -54,7 +54,7 @@ export class GroupsController {
     );
   }
 
-  @ApiOperation({ summary: 'Get trainer groups' })
+  @ApiOperation({ summary: 'Get training groups' })
   @ApiResponse({ status: 200, type: [Group] })
   @ApiBearerAuth()
   @Roles('ADMIN', 'TRAINER')
