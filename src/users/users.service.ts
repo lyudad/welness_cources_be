@@ -126,7 +126,7 @@ export class UsersService {
     return exitingUser;
   }
 
-  async updateUserAvatar(userId: number, avatarUrl: string) {
+  async updateUserAvatar(userId: number, avatarUrl: string): Promise<void> {
     const existingUser = await this.checkExitingUserById(userId);
 
     if (existingUser.avatar) {

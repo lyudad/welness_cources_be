@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -78,8 +79,6 @@ export class GroupsController {
 
   @ApiOperation({ summary: 'Get all groups' })
   @ApiResponse({ status: 200, type: [Group] })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @Get()
   getAll(): Promise<Group[] | []> {
     return this.groupService.findAll();
@@ -87,11 +86,15 @@ export class GroupsController {
 
   @ApiOperation({ summary: 'Get group by id' })
   @ApiResponse({ status: 200, type: Group })
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
   @Get('/:groupId')
-  getById(@Param('groupId') groupId: number): Promise<Group> {
-    return this.groupService.findByIdWithUsers(groupId);
+  async getById(@Param('groupId') groupId: number): Promise<Group> {
+    const group = await this.groupService.findByIdWithUsers(groupId);
+
+    if (!group) {
+      throw new NotFoundException('Group with provided id not found');
+    }
+
+    return group;
   }
 
   @ApiOperation({ summary: 'Join group by id' })
